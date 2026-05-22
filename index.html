@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -397,6 +398,7 @@
     </div>
   </div>
   <div class="header-actions">
+    <button class="btn-icon" id="mode-btn" title="Short/Long Mode" style="font-size:12px;font-weight:700;width:auto;padding:0 10px;font-family:'Space Mono',monospace;">SHORT</button>
     <button class="btn-icon" id="new-chat-btn" title="New Chat">✏️</button>
     <button class="btn-icon" id="theme-btn" title="Toggle Theme">🌙</button>
   </div>
@@ -449,32 +451,52 @@ let apiKey = localStorage.getItem('rb_api_key') || '';
 let pendingImage = null; // { dataUrl, base64, mediaType, name }
 let isLoading = false;
 let isDark = false;
+let isShortMode = true;
 
-const SYSTEM_PROMPT = `Tu hai Reaction Baba — ek aisa chemistry expert jo apne best dost ki tarah samjhata hai. Koi boring textbook style nahi, bilkul casual aur friendly tone mein baat kar, jaise do dost baat kar rahe ho. Thodi Hindi-English mix bhi theek hai.
+const SYSTEM_PROMPT_SHORT = `Tu hai Reaction Baba — ek chill chemistry expert. SHORT mode mein hai, toh CONCISE reh!
 
-Jab koi reaction name ya structure diya jaye:
-1. Pehle ek line mein bol — "yaar ye wahi reaction hai jo [real-life example] mein hoti hai!" (e.g., soap banana, aspirin, plastic, petrol refining, cooking, etc.)
-2. Simple words mein explain kar reaction kya kar rahi hai
-3. Step-by-step mechanism batao (arrows use karo, intermediates mention karo)
-4. Conditions batao — catalyst, temperature, solvent — lekin simply
-5. Agar koi common/famous reaction hai to uska naam bhi bata do
+FORMAT RULES (STRICT):
+- Max 150-200 words total
+- Structure: 🎯 Kya hai (1 line) → ⚡ Key steps (numbered, 1 line each) → 🧪 Conditions (1 line) → 💡 Real-life (1 line)
+- Bond-line structures ke liye ASCII use kar: jaise CH3-CH2-OH ya cyclohexane ke liye hexagon draw kar with /, \\ lines
+- NO big paragraphs, NO excessive blank lines between points
+- Agar image di hai: seedha identify karo aur compact mechanism do
+
+Tone: Dost jaisa, hinglish okay, no jargon.`;
+
+const SYSTEM_PROMPT_LONG = `Tu hai Reaction Baba — ek aisa chemistry expert jo apne best dost ki tarah samjhata hai. Casual aur friendly tone mein baat kar, jaise do dost baat kar rahe ho. Thodi Hindi-English mix bhi theek hai.
+
+FORMAT RULES:
+- Points ke beech zyada blank lines mat dena — compact likho
+- Bond-line structures ke liye ASCII art use karo:
+  * Simple chains: CH3-CH2-CH2-OH
+  * Rings: hexagon shape use karo /, \\ se
+  * Double bonds: = sign use karo
+  * Arrows: → ya ⟶ use karo mechanism mein
+- Structure: Real-life hook → Kya ho raha hai → Step-by-step mechanism (numbered) → Conditions → Fun fact
 
 Jab image di jaye:
-1. Dekh ke pehchano kya hai
-2. Casually bolo — "arre yaar ye toh ... hai!"
-3. Poori mechanism explain karo friendly tone mein
+1. IMAGE ko carefully analyze karo — structural formula, reagents, conditions sab dekho
+2. Identify karo: "arre yaar ye toh [reaction name] hai!"
+3. Jo exactly image mein diya hai uska mechanism explain karo
+4. Correct product batao with bond-line structure
 
-Tone rules:
-- Dost ki tarah baat kar, "yaar", "bhai", "dekh" use kar sakta hai
-- Confusing jargon avoid karo, simple rakhao
-- Agar kuch non-chemistry pucha to haste haste bol do — "arre bhai main toh bas chemistry jaanta hoon!"
-- Har response mein ek real-life connection zaroor dena`;
+Tone: Dost jaisa, hinglish okay, engaging raho.`;
 
 // ── INIT ──
 if (apiKey) {
   document.getElementById('api-key-input').value = apiKey;
   setApiStatus(true);
 }
+
+// ── MODE TOGGLE ──
+document.getElementById('mode-btn').addEventListener('click', () => {
+  isShortMode = !isShortMode;
+  const btn = document.getElementById('mode-btn');
+  btn.textContent = isShortMode ? 'SHORT' : 'LONG';
+  btn.style.background = isShortMode ? 'var(--surface2)' : 'var(--accent)';
+  btn.style.color = isShortMode ? 'var(--text)' : 'white';
+});
 
 // ── THEME ──
 document.getElementById('theme-btn').addEventListener('click', () => {
@@ -613,6 +635,9 @@ async function sendMessage() {
   }
   if (text) {
     userContent.push({ type: 'text', text });
+  } else if (pendingImage) {
+    // Always add instruction text with image for better analysis
+    userContent.push({ type: 'text', text: 'Is image mein jo reaction/structure diya hai uska naam batao aur mechanism explain karo. Bond-line structures use karo answer mein.' });
   }
 
   // Show user bubble
@@ -640,8 +665,8 @@ async function sendMessage() {
       },
       body: JSON.stringify({
         model: 'anthropic/claude-sonnet-4-5',
-        max_tokens: 2048,
-        system: SYSTEM_PROMPT,
+        max_tokens: isShortMode ? 600 : 2048,
+        system: isShortMode ? SYSTEM_PROMPT_SHORT : SYSTEM_PROMPT_LONG,
         messages: conversationHistory
       })
     });
@@ -732,13 +757,21 @@ function removeTyping(id) {
 }
 
 function formatText(text) {
-  // Basic formatting
   return text
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    // Headers
+    .replace(/^### (.+)$/gm, '<strong style="color:var(--accent);display:block;margin-top:6px">$1</strong>')
+    .replace(/^## (.+)$/gm, '<strong style="color:var(--accent);font-size:1.05em;display:block;margin-top:8px">$1</strong>')
+    .replace(/^# (.+)$/gm, '<strong style="color:var(--accent);font-size:1.1em;display:block;margin-top:8px">$1</strong>')
+    // Bold/italic
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/`([^`]+)`/g, '<code style="background:var(--surface2);padding:1px 5px;border-radius:4px;font-family:monospace;font-size:0.85em">$1</code>')
+    // Code
     .replace(/```([\s\S]*?)```/g, '<pre>$1</pre>')
+    .replace(/`([^`]+)`/g, '<code style="background:var(--surface2);padding:1px 5px;border-radius:4px;font-family:monospace;font-size:0.85em">$1</code>')
+    // Reduce multiple blank lines to single
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/\n\n/g, '<br>')
     .replace(/\n/g, '<br>');
 }
 </script>
