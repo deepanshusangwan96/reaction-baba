@@ -394,7 +394,7 @@
     <div class="logo-icon">⚗️</div>
     <div>
       <div class="logo-text">Reaction Baba</div>
-      <div class="logo-sub">ORGANIC CHEMISTRY AI</div>
+      <div class="logo-sub">JEE CHEMISTRY AI</div>
     </div>
   </div>
   <div class="header-actions">
@@ -417,11 +417,11 @@
   <div class="welcome" id="welcome">
     <div class="big-icon">⚗️</div>
     <h2>Reaction Baba</h2>
-    <p>Organic chemistry ka expert! Reaction ka naam likho ya image paste/upload karo — poori mechanism milegi! 🧪</p>
+    <p>JEE Mains & Advanced chemistry ka expert! Reaction ka naam likho, image paste karo — seedha JEE-style answer milega! 🧪</p>
     <div class="example-chip" onclick="fillExample(this)">Aldol condensation</div>
       <div class="example-chip" onclick="fillExample(this)">Grignard reaction</div>
-      <div class="example-chip" onclick="fillExample(this)">Diels-Alder reaction</div>
-      <div class="example-chip" onclick="fillExample(this)">Markovnikov addition</div>
+      <div class="example-chip" onclick="fillExample(this)">SN1 vs SN2</div>
+      <div class="example-chip" onclick="fillExample(this)">Sandmeyer reaction</div>
     </div>
   </div>
 </div>
@@ -436,7 +436,7 @@
 <!-- INPUT AREA -->
 <div class="input-area">
   <div class="input-wrapper">
-    <textarea id="msg-input" placeholder="Reaction ka naam likho ya Ctrl+V se image paste karo... 🧪" rows="1"></textarea>
+    <textarea id="msg-input" placeholder="Reaction ka naam likho ya Ctrl+V se image paste karo (JEE Mains/Adv) 🧪" rows="1"></textarea>
     <button class="attach-btn" id="attach-btn" title="Image attach karo">📎</button>
   </div>
   <button class="send-btn" id="send-btn" title="Send">➤</button>
@@ -453,35 +453,46 @@ let isLoading = false;
 let isDark = false;
 let isShortMode = true;
 
-const SYSTEM_PROMPT_SHORT = `Tu hai Reaction Baba — ek chill chemistry expert. SHORT mode mein hai, toh CONCISE reh!
+const SYSTEM_PROMPT_SHORT = `Tu hai Reaction Baba — JEE Mains & Advanced ka chemistry expert! SHORT mode = ultra-direct answers.
 
-FORMAT RULES (STRICT):
-- Max 150-200 words total
-- Structure: 🎯 Kya hai (1 line) → ⚡ Key steps (numbered, 1 line each) → 🧪 Conditions (1 line) → 💡 Real-life (1 line)
-- Bond-line structures ke liye ASCII use kar: jaise CH3-CH2-OH ya cyclohexane ke liye hexagon draw kar with /, \\ lines
-- NO big paragraphs, NO excessive blank lines between points
-- Agar image di hai: seedha identify karo aur compact mechanism do
+RULES (STRICT):
+- Agar reaction ka NAAM pucha hai → seedha reaction ka naam do + 1-line definition + key reagent/condition
+- Agar IMAGE di hai → pehle reaction identify karo, phir: naam, reactants→product (arrow form), 1 key condition
+- Agar koi specific cheez pucha (e.g., "Aldol ka product kya hai") → seedha point pe aao, bakwaas nahi
+- Max 100-120 words. NO intros like "Great question" ya "Sure!". Jump straight to the answer.
+- ASCII structures: CH3-CHO, C=O, -OH etc. Rings ke liye / \\ use karo.
+- JEE context mein socho: jo JEE mein aata hai woh mention karo (stereochemistry, major product, exception)
 
-Tone: Dost jaisa, hinglish okay, no jargon.`;
+FORMAT:
+🔬 **[Reaction Name]**
+Reactant → Product (condition)
+⚡ Key point (JEE trick ya catch)
 
-const SYSTEM_PROMPT_LONG = `Tu hai Reaction Baba — ek aisa chemistry expert jo apne best dost ki tarah samjhata hai. Casual aur friendly tone mein baat kar, jaise do dost baat kar rahe ho. Thodi Hindi-English mix bhi theek hai.
+Hinglish okay. No fluff.`;
 
-FORMAT RULES:
-- Points ke beech zyada blank lines mat dena — compact likho
-- Bond-line structures ke liye ASCII art use karo:
-  * Simple chains: CH3-CH2-CH2-OH
-  * Rings: hexagon shape use karo /, \\ se
-  * Double bonds: = sign use karo
-  * Arrows: → ya ⟶ use karo mechanism mein
-- Structure: Real-life hook → Kya ho raha hai → Step-by-step mechanism (numbered) → Conditions → Fun fact
+const SYSTEM_PROMPT_LONG = `Tu hai Reaction Baba — JEE Mains & Advanced ka chemistry guru! Dost jaisi baat, full explanation do.
 
-Jab image di jaye:
-1. IMAGE ko carefully analyze karo — structural formula, reagents, conditions sab dekho
-2. Identify karo: "arre yaar ye toh [reaction name] hai!"
-3. Jo exactly image mein diya hai uska mechanism explain karo
-4. Correct product batao with bond-line structure
+JEE FOCUS: Saara content JEE Mains/Advanced syllabus ke according hona chahiye. Mechanisms, stereochemistry, named reactions, exceptions — sab JEE lens se.
 
-Tone: Dost jaisa, hinglish okay, engaging raho.`;
+FORMAT (ALWAYS follow this):
+**🔬 [Reaction Name]**
+**📖 General Info:** Kya hai ye reaction, kab hoti hai (1-2 lines)
+**⚗️ Reactants & Conditions:** Kya chahiye (reagents, temp, catalyst)
+**⚡ Mechanism:** Step-by-step (numbered), bond-line ASCII structures use karo
+  - CH3-CH2-OH type chains
+  - C=O, -OH, -Br etc functional groups
+  - → ya ⟶ arrows for steps
+**🧪 Example (JEE style):** Ek concrete example with structures
+**💡 JEE Trick:** Jo JEE mein most commonly puchha jaata hai / common mistake / exception
+
+Jab IMAGE di jaye:
+1. IMAGE carefully dekho — har bond, har atom, reagents, arrows, conditions — sab
+2. Pehchano: "Yaar ye toh [exact reaction name] hai!"
+3. Jo image mein exactly diya hai uska mechanism step-by-step explain karo
+4. Product clearly batao with structure
+5. JEE mein ye kaise puchha jaata hai wo bhi batao
+
+Tone: friendly, hinglish okay, engaging. Points ke beech zyada gaps mat dena.`;
 
 // ── INIT ──
 if (apiKey) {
@@ -526,11 +537,11 @@ document.getElementById('new-chat-btn').addEventListener('click', () => {
     <div class="welcome" id="welcome">
       <div class="big-icon">⚗️</div>
       <h2>Reaction Baba</h2>
-      <p>Organic chemistry ka expert! Reaction ka naam likho ya image paste/upload karo — poori mechanism milegi! 🧪</p>
+      <p>JEE Mains & Advanced chemistry ka expert! Reaction ka naam likho, image paste karo — seedha JEE-style answer milega! 🧪</p>
     <div class="example-chip" onclick="fillExample(this)">Aldol condensation</div>
         <div class="example-chip" onclick="fillExample(this)">Grignard reaction</div>
-        <div class="example-chip" onclick="fillExample(this)">Diels-Alder reaction</div>
-        <div class="example-chip" onclick="fillExample(this)">Markovnikov addition</div>
+        <div class="example-chip" onclick="fillExample(this)">SN1 vs SN2</div>
+        <div class="example-chip" onclick="fillExample(this)">Sandmeyer reaction</div>
       </div>
     </div>`;
   conversationHistory = [];
@@ -636,8 +647,11 @@ async function sendMessage() {
   if (text) {
     userContent.push({ type: 'text', text });
   } else if (pendingImage) {
-    // Always add instruction text with image for better analysis
-    userContent.push({ type: 'text', text: 'Is image mein jo reaction/structure diya hai uska naam batao aur mechanism explain karo. Bond-line structures use karo answer mein.' });
+    // Strong vision prompt for image-only submissions
+    const imagePrompt = isShortMode
+      ? 'Is image mein jo reaction/structure/mechanism diya hai usse carefully dekho. Reaction ka naam identify karo aur SHORT mode format mein direct answer do: reaction naam, reactants→products, key condition. JEE Mains/Advanced context mein answer karo.'
+      : 'Is image mein jo reaction/structure/mechanism diya hai usse carefully analyze karo — har bond, functional group, reagent, condition, arrow sab dekho. Phir LONG mode format follow karo: reaction naam identify karo, general info, mechanism step-by-step, JEE example, aur JEE trick. Image mein exactly jo diya hai uska accurate explanation do.';
+    userContent.push({ type: 'text', text: imagePrompt });
   }
 
   // Show user bubble
@@ -665,7 +679,7 @@ async function sendMessage() {
       },
       body: JSON.stringify({
         model: 'anthropic/claude-sonnet-4-5',
-        max_tokens: isShortMode ? 600 : 2048,
+        max_tokens: isShortMode ? 400 : 1800,
         system: isShortMode ? SYSTEM_PROMPT_SHORT : SYSTEM_PROMPT_LONG,
         messages: conversationHistory
       })
